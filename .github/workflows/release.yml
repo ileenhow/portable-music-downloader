@@ -1,0 +1,170 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build extension
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 15
+    outputs:
+      zip_name: ${{ steps.package.outputs.zip_name }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build release package
+        run: pnpm release:build
+
+      - name: Locate release zip and verify version
+        id: package
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile, access, appendFile } from 'node:fs/promises';
+          import assert from 'node:assert/strict';
+          const { name, version } = JSON.parse(await readFile('package.json', 'utf8'));
+          const ref = process.env.RELEASE_REF;
+          if (ref.startsWith('refs/tags/')) assert.equal(ref, `refs/tags/v${version}`, 'Tag and package version must match.');
+          const zipName = `${name}-v${version}.zip`;
+          await access(`release/${zipName}`);
+          await appendFile(process.env.GITHUB_OUTPUT, `zip_path=release/${zipName}\nzip_name=${zipName}\n`);
+          await appendFile(process.env.GITHUB_STEP_SUMMARY, `Version: **${version}**\n\nCommit: \`${process.env.GITHUB_SHA}\`\n\nZIP: \`${zipName}\`\n\n构建完成后，两个商店发布任务会等待审批。检查安装包后，在本次运行页面点击 **Review deployments**，选择要放行的商店并点击 **Approve and deploy**。\n`);
+          NODE
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.package.outputs.zip_name }}
+          path: |
+            ${{ steps.package.outputs.zip_path }}
+            ${{ steps.package.outputs.zip_path }}.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "${{ steps.package.outputs.zip_path }}" "${{ steps.package.outputs.zip_path }}.sha256" \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber
+          else
+            gh release create "$tag" "${{ steps.package.outputs.zip_path }}" "${{ steps.package.outputs.zip_path }}.sha256" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$tag" \
+              --notes "Chromium extension build for $tag."
+          fi
+
+  publish-chrome:
+    name: Publish to Chrome Web Store
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: chrome-web-store
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Download release package
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ needs.build.outputs.zip_name }}
+          path: release
+
+      - name: Verify release package
+        env:
+          ZIP_NAME: ${{ needs.build.outputs.zip_name }}
+        run: node scripts/verify-release-package.mjs "release/$ZIP_NAME"
+
+      - name: Publish to Chrome Web Store
+        env:
+          ZIP_NAME: ${{ needs.build.outputs.zip_name }}
+          CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: node scripts/chrome-web-store-publish.mjs "release/$ZIP_NAME"
+
+  publish-edge:
+    name: Publish to Microsoft Edge Add-ons
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: edge-addons
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Download release package
+        uses: actions/download-artifact@v6
+        with:
+          name: ${{ needs.build.outputs.zip_name }}
+          path: release
+
+      - name: Verify release package
+        env:
+          ZIP_NAME: ${{ needs.build.outputs.zip_name }}
+        run: node scripts/verify-release-package.mjs "release/$ZIP_NAME"
+
+      - name: Publish to Microsoft Edge Add-ons
+        env:
+          ZIP_NAME: ${{ needs.build.outputs.zip_name }}
+          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+          # Optional: omit this secret when no certification notes are needed.
+          EDGE_CERTIFICATION_NOTES: ${{ secrets.EDGE_CERTIFICATION_NOTES }}
+        run: node scripts/edge-addons-publish.mjs "release/$ZIP_NAME"

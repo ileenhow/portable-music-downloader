@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#edf4f9"><link rel="icon" type="image/png" href="assets/icon32.png"><title>随身音乐</title></head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="popup.html"><img src="assets/logo.png" alt=""><span><strong>随身音乐</strong><small>— 为你的运动设备下载歌曲</small></span></a>
+  </header>
+  <main class="workspace">
+    <aside class="search-panel" aria-label="音乐搜索与下载">
+      <section id="search-view" class="search-section">
+        <div class="source-switch"><label for="source-select">音源</label><select id="source-select" name="source" aria-label="选择音乐来源" disabled><option value="gequbao">歌曲宝</option><option value="gequhai">歌曲海</option></select></div>
+        <form id="search-form" class="search-box"><label class="sr-only" for="search-input">歌名或歌手</label><input id="search-input" placeholder="搜索歌名或歌手" maxlength="35" autocomplete="off" required><button type="submit" class="primary" id="search-button">搜索</button></form>
+        <div id="search-history" class="search-history" aria-label="最近搜索"></div>
+        <div id="notice" class="notice" role="status" hidden><p id="notice-text"></p><button id="verify-button" class="secondary" hidden>打开验证窗口</button></div>
+        <div class="results-heading"><h2 id="results-title">歌曲搜索</h2><span id="results-count"></span></div>
+        <div id="search-results" class="results"><div class="empty empty-search"><div class="search-note" aria-hidden="true"><svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#music"></use></svg></div><h3>下一首，想听什么？</h3><p>搜索喜欢的版本，播放或下载。<br>连接右侧设备，就能直接传歌。</p></div></div>
+        <button id="load-more" class="secondary" hidden>加载更多</button>
+      </section>
+      <details class="queue-panel" open>
+        <summary class="queue-heading"><svg class="action-icon queue-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#chevron"></use></svg><span>下载队列</span><span id="queue-count">0</span></summary>
+        <div class="queue-body"><div id="queue-empty" class="queue-empty">下载任务会显示在这里。</div><div id="queue-list"></div><button id="clear-finished" class="quiet" hidden>清除已完成</button></div>
+      </details>
+      <div class="local-destination"><span id="local-destination">本地下载时选择电脑文件夹</span><button id="change-local-folder" class="quiet" hidden>更换</button></div>
+    </aside>
+    <section class="device-workspace" aria-label="设备与曲库">
+      <section id="devices-section" class="devices-section">
+        <div id="device-list" class="device-list" aria-label="设备列表" aria-live="polite"></div>
+      </section>
+      <section id="library-view" class="library-section">
+        <div id="device-library-toolbar" class="library-heading device-library-toolbar" hidden>
+          <div class="device-identity">
+            <button id="open-device" type="button" class="device-glyph" aria-label="连接设备音乐目录" title="连接设备音乐目录"><svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#headphones"></use></svg></button>
+            <div class="device-identity-details">
+              <div class="device-name-row"><h2 id="library-title"></h2><button id="rename-device" type="button" class="icon-button rename-device" title="修改设备名称" aria-label="修改设备名称" aria-haspopup="dialog"><svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#edit"></use></svg></button></div>
+              <div id="device-storage" class="device-storage-row"><meter id="device-storage-usage" min="0" max="1" value="0" aria-label="曲库文件占用"></meter><span id="device-capacity" class="device-capacity"></span></div>
+            </div>
+          </div>
+          <div class="device-overview"><div class="device-song-row"><span id="library-count">0 首歌曲</span><button id="scan-device" type="button" class="icon-button" title="重新扫描" aria-label="重新扫描曲库"><svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#scan"></use></svg></button></div><span id="device-status" class="device-status" aria-live="polite"></span></div>
+          <div class="filter-box"><span aria-hidden="true"><svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#search"></use></svg></span><label class="sr-only" for="library-filter">筛选设备曲库</label><input id="library-filter" placeholder="筛选歌曲、歌手或专辑"></div>
+        </div>
+        <div id="library-results" class="library-grid"></div>
+      </section>
+    </section>
+  </main>
+  <audio id="player" preload="metadata" hidden></audio>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <dialog id="add-device-dialog" class="device-picker-dialog" aria-labelledby="add-device-title">
+    <form method="dialog"><button class="dialog-close" aria-label="关闭"><svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#close"></use></svg></button></form>
+    <div class="device-picker-heading"><h2 id="add-device-title">添加设备</h2><button type="button" id="refresh-devices" class="secondary">刷新</button></div>
+    <div id="available-devices" class="available-devices" aria-label="可用 USB 设备" aria-live="polite"></div>
+    <div class="device-picker-footer"><button type="button" id="choose-directory" class="quiet">手动选择目录</button></div>
+  </dialog>
+  <dialog id="device-dialog"><form method="dialog"><button class="dialog-close" aria-label="关闭"><svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#close"></use></svg></button></form><span class="eyebrow">设备管理</span><h2 id="device-dialog-title">管理设备</h2><p id="device-directory"></p><button id="reselect-device" class="quiet">重新选择音乐目录</button><form id="device-form"><label for="device-name">设备名称</label><input id="device-name" maxlength="60" required><div class="dialog-actions"><button class="primary" id="save-device">保存名称</button></div></form><div class="device-dialog-footer"><p>移除设备只会删除这里的目录记录，设备内的音乐文件会保留。</p><button id="forget-device" class="danger">移除设备记录</button></div></dialog>
+  <dialog id="detail-dialog"><form method="dialog"><button class="dialog-close" aria-label="关闭"><svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/assets/song-actions.svg#close"></use></svg></button></form><div id="detail-content"></div></dialog>
+  <dialog id="captcha-dialog"><h2>完成一次验证</h2><p>音源服务要求输入图片中的字符。</p><form id="captcha-form"><img id="captcha-image" alt="验证码图片"><label for="captcha-input">验证码</label><input id="captcha-input" maxlength="10" autocomplete="off" required><p id="captcha-error" role="alert"></p><div class="dialog-actions"><button type="button" id="captcha-refresh" class="secondary">换一张</button><button type="button" id="captcha-cancel" class="quiet">取消</button><button class="primary">继续</button></div></form></dialog>
+  <dialog id="permission-dialog"><h2>允许下载此音源</h2><p>这首歌使用了新的音频服务器。授权后可下载该服务器提供的歌曲。</p><p id="permission-origin" class="muted"></p><div class="dialog-actions"><button id="permission-cancel" class="quiet">取消</button><button id="permission-allow" class="primary">授权并继续</button></div></dialog>
+  <script type="module" src="/src/popup/main.ts"></script>
+</body></html>

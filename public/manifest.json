@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extensionName__",
+  "default_locale": "zh_CN",
+  "version": "0.2.0",
+  "description": "__MSG_extensionDescription__",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "storage",
+    "system.storage",
+    "scripting",
+    "alarms",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "https://www.gequbao.com/*",
+    "https://gequbao.com/*",
+    "https://www.gequhai.com/*",
+    "https://*.kuwo.cn/*",
+    "http://*.kuwo.cn/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "assets/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "打开随身音乐",
+    "default_icon": {
+      "16": "assets/icon16.png",
+      "32": "assets/icon32.png",
+      "128": "assets/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icon16.png",
+    "32": "assets/icon32.png",
+    "128": "assets/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'"
+  }
+}
