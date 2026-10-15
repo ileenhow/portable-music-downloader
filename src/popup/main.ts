@@ -9,7 +9,7 @@ import * as P from '../shared/source';
 import { DEFAULT_SOURCE,SOURCES,sourceId,sourceInfo,sourceKey,type SourceId } from '../shared/sources';
 import { musicSource } from '../shared/providers';
 import { toError, fileSystemMessage } from '../shared/errors';
-import type { Actions, Reply } from '../shared/messages';
+import { CHANNEL, PROTOCOL_VERSION, UPDATE_REQUIRED, type Actions, type Reply } from '../shared/messages';
 import type { Folder, LocalTrack, QueueItem, Song, Detail, DisplayTrack, CaptchaTask, CaptchaAnswer } from '../shared/types';
 type Elements = Record<string, HTMLElement> & {
   'search-input': HTMLInputElement; 'library-filter': HTMLInputElement; 'captcha-input': HTMLInputElement;
@@ -59,7 +59,8 @@ function errorMessage(value: unknown){const error=toError(value);return error.na
 async function rpc<A extends keyof Actions>(action: A,args: Actions[A]['args']): Promise<Actions[A]['data']>{
   if(!extension)throw new P.SourceError('PREVIEW','请先在 Chrome 或 Edge 中加载扩展。');
   let result: Reply<Actions[A]['data']>;
-  try{result=await chrome.runtime.sendMessage({channel:'portable-library',action,args});}catch{throw new P.SourceError('NETWORK','扩展连接中断，请刷新页面后重试。');}
+  try{result=await chrome.runtime.sendMessage({channel:CHANNEL,protocol:PROTOCOL_VERSION,action,args});}catch{throw new P.SourceError('NETWORK','扩展连接中断，请在扩展管理页重新加载后再试。');}
+  if(result&&result.protocol!==PROTOCOL_VERSION)throw new P.SourceError('UPDATE_REQUIRED',UPDATE_REQUIRED);
   if(!result?.ok)throw new P.SourceError(result?.error?.code||'NETWORK',result?.error?.message||'连接中断，请重试。',result?.error?.details);
   return result.data;
 }
@@ -497,7 +498,7 @@ function endCaptcha(answer?: CaptchaAnswer){const task=captchaTask;if(!task)retu
 async function resolveTrack(track: Detail,wanted=()=>true){
   const fields={source:track.source,id:track.id,playId:track.playId,purpose:'play' as const};let answer: Partial<CaptchaAnswer>={},refreshed=false;
   for(let attempts=0;attempts<4;attempts++){
-    try{let {url}=await rpc('RESOLVE',{...fields,...answer});if(!wanted())throw new P.SourceError('CANCELLED','已切换搜索来源。');if(new URL(url).hostname==='antiserver.kuwo.cn')url=(await rpc('CONVERT',{source:track.source,url})).url;return url;}
+    try{let {url}=await rpc('RESOLVE',{...fields,...answer});if(!wanted())throw new P.SourceError('CANCELLED','已切换搜索来源。');const media=P.mediaURL(url);url=media.href;if(media.hostname==='antiserver.kuwo.cn')url=P.mediaURL((await rpc('CONVERT',{source:track.source,url})).url).href;return url;}
     catch(caught){
       const error=toError(caught);if(!wanted())throw new P.SourceError('CANCELLED','已切换搜索来源。');
       if(error.code==='PLAY_EXPIRED'&&!refreshed){

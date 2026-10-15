@@ -3,7 +3,7 @@ import { sourceId,type SourceId } from '../shared/sources';
 import { musicSource } from '../shared/providers';
 import type { SourceResult } from '../shared/types';
 import { toError } from '../shared/errors';
-import { CHANNEL, type Message } from '../shared/messages';
+import { CHANNEL, PROTOCOL_VERSION, UPDATE_REQUIRED, type Message } from '../shared/messages';
 import { openVerificationWindow, source, readJSON, post, cleanProvider } from './provider';
 
 // Only pending calls live in memory. Window and verification state lives in storage.session.
@@ -67,8 +67,9 @@ async function perform(message: Message): Promise<unknown> {
 chrome.runtime.onMessage.addListener((message,sender,reply)=>{
   if(message?.channel!==CHANNEL||sender.id!==chrome.runtime.id||sender.url?.split(/[?#]/)[0]!==chrome.runtime.getURL('popup.html'))return;
   void (async()=>{try{
-    const id=sourceId(message.args?.source),data=await serialized(id,()=>perform(message));reply({ok:true,data});
-  }catch(caught){const error=toError(caught);reply({ok:false,error:{code:error.code,message:error.code==='UNKNOWN'?'连接中断，请重试。':error.message,details:error.details}});}})();
+    if(message.protocol!==PROTOCOL_VERSION)throw new P.SourceError('UPDATE_REQUIRED',UPDATE_REQUIRED);
+    const id=sourceId(message.args?.source),data=await serialized(id,()=>perform(message));reply({protocol:PROTOCOL_VERSION,ok:true,data});
+  }catch(caught){const error=toError(caught);reply({protocol:PROTOCOL_VERSION,ok:false,error:{code:error.code,message:error.code==='UNKNOWN'?'连接中断，请重试。':error.message,details:error.details}});}})();
   return true;
 });
 chrome.action.onClicked.addListener(async()=>{
