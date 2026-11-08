@@ -14,6 +14,9 @@ importers:
       '@types/node':
         specifier: ^25.9.3
         version: 25.9.3
+      husky:
+        specifier: 9.1.7
+        version: 9.1.7
       lucide-static:
         specifier: 1.55.0
         version: 1.55.0
@@ -357,6 +360,11 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  husky@9.1.7:
+    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   lucide-static@1.55.0:
     resolution: {integrity: sha512-h18lunTFsIJWnY0FMRPjXeO9KcAtNi7fDqtqgWHOFbssfgUWsctn/pA7bpiyrd4g1DuBOJ24CsRnPfkYblwm/A==}
 
@@ -646,6 +654,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  husky@9.1.7: {}
 
   lucide-static@1.55.0: {}
 

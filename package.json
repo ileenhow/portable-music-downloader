@@ -23,13 +23,17 @@
     "cws:upload": "node scripts/chrome-web-store-publish.mjs --no-publish",
     "cws:publish": "node scripts/chrome-web-store-publish.mjs",
     "edge:upload": "node scripts/edge-addons-publish.mjs --no-publish",
-    "edge:publish": "node scripts/edge-addons-publish.mjs"
+    "edge:publish": "node scripts/edge-addons-publish.mjs",
+    "security:secrets": "bash .security/gitleaks.sh tree",
+    "security:secrets:history": "bash .security/gitleaks.sh history",
+    "prepare": "node .security/install-hooks.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.33",
     "@types/node": "^25.9.3",
     "lucide-static": "1.55.0",
     "typescript": "^5.9.3",
-    "vite": "^7.2.7"
+    "vite": "^7.2.7",
+    "husky": "9.1.7"
   }
 }
