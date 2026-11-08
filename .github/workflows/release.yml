@@ -36,7 +36,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
 
@@ -109,7 +109,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
 
@@ -150,7 +150,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
 
